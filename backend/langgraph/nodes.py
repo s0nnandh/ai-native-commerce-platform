@@ -18,7 +18,7 @@ from utils.constants import (
 )
 from utils.tools import ToolManager
 from utils.vector_store import VectorStoreManager
-from utils.product_lookup import ProductLookupManager
+from manager.product_lookup import ProductLookupManager
 from prompts.intent_classification import IntentClassificationPrompts
 from prompts.followup_generation import FollowupPrompts
 from prompts.response_generation import ResponsePrompts
