@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  flask-app:
+    build: .
+    container_name: ai-commerce-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - ./chroma_db:/app/chroma_db
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+      - CHROMA_PERSIST_DIRECTORY=/app/chroma_db
+    restart: unless-stopped
+    networks:
+      - ai-commerce-network
+
+  # Uncomment to add a separate ChromaDB service if needed
+  # chroma-db:
+  #   image: ghcr.io/chroma-core/chroma:latest
+  #   container_name: chroma-db
+  #   volumes:
+  #     - ./chroma_data:/chroma/chroma
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - ai-commerce-network
+
+networks:
+  ai-commerce-network:
+    driver: bridge
