@@ -17,7 +17,7 @@ from utils.constants import (
     IntentConfig, ErrorMessages, CONSTRAINT_NATURAL_LANGUAGE_MAP
 )
 from utils.tools import ToolManager
-from utils.vector_store import VectorStoreManager
+from manager.vector_lookup import VectorStoreManager
 from manager.product_lookup import ProductLookupManager
 from prompts.intent_classification import IntentClassificationPrompts
 from prompts.followup_generation import FollowupPrompts

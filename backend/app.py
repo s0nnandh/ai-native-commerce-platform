@@ -1,140 +1,91 @@
-import os
+"""
+Simple Flask app for conversational store backend.
+"""
+import time
+import uuid
 from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-import chromadb
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langgraph.graph import StateGraph
-from langgraph.graph.message import MessageState
-import logging
+import structlog
+
+# Import our components
+from langgraph.graph import process_user_message, create_response_dict
+from utils.validation import validate_assist_request, ValidationError
+from utils.error_handler import handle_api_error, APIError, create_fallback_response
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.add_log_level,
+        structlog.processors.JSONRenderer()
+    ],
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=True,
+)
 
-# Load environment variables
-load_dotenv()
+logger = structlog.get_logger()
 
 # Initialize Flask app
 app = Flask(__name__)
 
-# Initialize OpenAI client
-llm = ChatOpenAI(
-    model=os.getenv("OPENAI_MODEL_NAME", "gpt-3.5-turbo"),
-    temperature=0.7,
-    api_key=os.getenv("OPENAI_API_KEY")
-)
 
-# Initialize ChromaDB client
-chroma_client = chromadb.Client()
-collection = chroma_client.get_or_create_collection(
-    name=os.getenv("CHROMA_COLLECTION_NAME", "product_data")
-)
-
-# Define Lang-graph stateful graph
-def generate_response(state):
-    """Generate a response using the LLM."""
-    messages = state["messages"]
-    response = llm.invoke(messages)
-    return {"messages": messages + [response]}
-
-def retrieve_context(state):
-    """Retrieve relevant context from the vector store."""
-    messages = state["messages"]
-    query = messages[-1].content
+@app.route('/api/assist', methods=['POST'])
+def assist():
+    """Main chat endpoint."""
+    start_time = time.time()
+    request_id = str(uuid.uuid4())[:8]
     
-    # Query the vector store
-    results = collection.query(
-        query_texts=[query],
-        n_results=3
-    )
+    logger.info("assist_request", request_id=request_id)
     
-    # Add context to the state
-    return {
-        "messages": messages,
-        "context": results
-    }
-
-def enhance_prompt(state):
-    """Enhance the prompt with retrieved context."""
-    messages = state["messages"]
-    context = state.get("context", {"documents": []})
-    
-    # Create an enhanced prompt with context
-    last_message = messages[-1]
-    enhanced_content = f"""
-    Context information:
-    {context}
-    
-    User query:
-    {last_message.content}
-    """
-    
-    # Replace the last message with the enhanced one
-    enhanced_message = last_message.copy()
-    enhanced_message.content = enhanced_content
-    
-    return {"messages": messages[:-1] + [enhanced_message]}
-
-# Define the graph
-builder = StateGraph(MessageState)
-
-# Add nodes
-builder.add_node("retrieve_context", retrieve_context)
-builder.add_node("enhance_prompt", enhance_prompt)
-builder.add_node("generate_response", generate_response)
-
-# Add edges
-builder.add_edge("retrieve_context", "enhance_prompt")
-builder.add_edge("enhance_prompt", "generate_response")
-builder.set_entry_point("retrieve_context")
-
-# Compile the graph
-graph = builder.compile()
-
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    """API endpoint for chat interactions."""
     try:
-        data = request.json
-        user_message = data.get('message', '')
+        # Validate request
+        session_id, user_message = validate_assist_request(request.get_json())
         
-        if not user_message:
-            return jsonify({"error": "No message provided"}), 400
+        # Process with LangGraph
+        result_state = process_user_message(session_id, user_message)
         
-        # Initialize state with user message
-        from langchain_core.messages import HumanMessage
-        initial_state = {"messages": [HumanMessage(content=user_message)]}
+        # Create response
+        latency_ms = int((time.time() - start_time) * 1000)
+        response = create_response_dict(result_state, latency_ms)
         
-        # Run the graph
-        result = graph.invoke(initial_state)
+        logger.info("assist_success",
+                   request_id=request_id,
+                   session_id=session_id,
+                   latency_ms=latency_ms)
         
-        # Extract assistant's response
-        assistant_message = result["messages"][-1]
+        return jsonify(response), 200
         
-        return jsonify({
-            "response": assistant_message.content,
-            "status": "success"
-        })
-    
+    except (ValidationError, APIError) as e:
+        return handle_api_error(e, request_id)
+        
     except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error("assist_error", request_id=request_id, error=str(e))
+        
+        # Return fallback response instead of error
+        fallback = create_fallback_response()
+        return jsonify(fallback), 200
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
+
+@app.route('/health', methods=['GET'])
+def health():
     """Health check endpoint."""
-    return jsonify({"status": "healthy"})
-
-@app.route('/')
-def index():
-    """Root endpoint."""
     return jsonify({
-        "message": "AI-Native Commerce Platform API",
-        "version": "0.1.0",
-        "status": "running"
-    })
+        "status": "healthy",
+        "timestamp": time.time()
+    }), 200
+
+
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors."""
+    return jsonify({"error": "Endpoint not found"}), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    """Handle 405 errors."""
+    return jsonify({"error": "Method not allowed"}), 405
+
 
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=os.getenv("FLASK_DEBUG", "False").lower() == "true")
+    logger.info("starting_flask_app")
+    app.run(host='0.0.0.0', port=5000, debug=True)
