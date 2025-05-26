@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Development Backend with live reload
+  backend:
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+    volumes:
+      - ./backend:/app  # Live code reload
+      - ./data:/app/data
+    command: ["python", "-m", "flask", "run", "--host=0.0.0.0", "--reload"]
+
+  # Development Frontend with live reload
+  frontend:
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev"]
+
+  # Development ChromaDB (no changes needed)
+  chromadb:
+    ports:
+      - "8000:8000"  # Expose for direct access during development

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=False
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  frontend:
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://your-api-domain.com
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  chromadb:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
