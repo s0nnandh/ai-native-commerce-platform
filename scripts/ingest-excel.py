@@ -18,9 +18,7 @@ PROCESSING_MAP = {
 def load_env_file() -> None:
     """Load environment variables from a .env file"""
     try:
-        file_path = os.path.join(os.getcwd(), 'scripts', '.env')
-        print(file_path)
-        load_dotenv(file_path)
+        load_dotenv()
         print("Environment variables loaded successfully.")
     except Exception as e:
         print(f"Error loading environment variables: {e}")
@@ -46,6 +44,19 @@ def load_text_data(file_path: str) -> str:
     except Exception as e:
         print(f"Error loading text file: {e}")
         raise
+
+def normalize_ingredients(ingredients: str) -> str:
+    """Normalize ingredients string to list of ingredients"""
+    word_ingredients = []
+    for ingredient in ingredients.split(';'):
+        all = ingredient.strip().split('(')
+        for x in all:
+            word_ingredients.append(x.replace(')', '').strip())
+    return "|".join([ing.replace(' ', '-').lower() for ing in word_ingredients]) 
+
+def normalize_tags(tags: str) -> str:
+    """Normalize tags string to list of tags"""
+    return tags.replace(' ', '-').lower()
 
 def get_value(row: Dict[str, str], key: str) -> str:
         """Helper function to get value from row, handling missing keys"""
@@ -74,24 +85,20 @@ def process_product_data(df: pd.DataFrame, doc_type: str = None) -> List[Documen
         text_content = f"""Product Name: {name} | Category: {category}.
 Description: {description}.
 Top Ingredients: {", ".join(top_ingredients.split(';') if isinstance(row['top_ingredients'], str) else [])}.
-Tags: {", ".join(tags.split('|') if isinstance(row['tags'], str) else [])}."""
-        
+Tags: {", ".join(tags.split('|') if isinstance(row['tags'], str) else [] )}."""
         # Create metadata dictionary
         metadata = {
+            'doc_type': doc_type,
             'product_id': product_id,
             'name': name,
-            'category': category,
+            'category': category.split('/')[-1].strip().replace(' ', '-').lower(),
             'description': description,
-            'top_ingredients': top_ingredients,
-            'tags': tags,
+            'top_ingredients': normalize_ingredients(top_ingredients),
+            'tags': normalize_tags(tags),
             'price_usd': float(price),
             'margin_percent': float(margin)
         }
-        
-        # Add doc_type to metadata if provided
-        if doc_type:
-            metadata['doc_type'] = doc_type
-        
+                
         # Create Document object
         doc = Document(
             id=f"{product_id}_0",
@@ -100,7 +107,7 @@ Tags: {", ".join(tags.split('|') if isinstance(row['tags'], str) else [])}."""
         )
         
         documents.append(doc)
-    print(documents[0])
+    print(documents)
 
     return documents
 
@@ -130,9 +137,12 @@ Review: {review_text}"""
         
         # Extract age if available
         age = None
+        tags = None
         if reviewer_details:
             if '(' in reviewer_details and ')' in reviewer_details:
                 parts = reviewer_details.split('(')
+                tag_list = parts[0].replace('/', ',').replace('&', ',').split(',')
+                tags = "|".join([tag.strip().replace(' ', '-').lower() for tag in tag_list])
                 age_str = parts[1].replace(')', '').strip()
                 try:
                     age = int(age_str)
@@ -147,6 +157,7 @@ Review: {review_text}"""
             'reviewer_full': reviewer,
             'reviewer_age': age,
             'product_name': product,
+            'tags': tags,
             'rating_display': rating,
             'annotated_rating': annotated_rating,
             'sentiment': 'positive' if int(annotated_rating[0]) >= 4 else 'neutral' if int(annotated_rating[0]) == 3 else 'negative'
@@ -160,6 +171,8 @@ Review: {review_text}"""
         )
         
         documents.append(doc)
+    
+    print(documents)
     
     return documents
 
@@ -422,7 +435,7 @@ if __name__ == "__main__":
         
         # Ingest documents
         print("Ingesting documents into ChromaDB...")
-        ingest_documents_to_chroma(documents, vectorstore)
+        # ingest_documents_to_chroma(documents, vectorstore)
         
         print(f"\n✅ Ingestion complete! {len(documents)} {args.doc_type} documents added to ChromaDB collection '{args.collection}'")
         
