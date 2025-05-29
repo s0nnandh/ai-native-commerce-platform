@@ -55,7 +55,8 @@ class ProductLookupManager:
         keywords: List[str],
         concerns: List[str],
         top_ingredients: List[str],
-        avoid_ingredients: List[str]
+        avoid_ingredients: List[str],
+        name: List[str],
     ) -> List[Product]:
         """Filter products based on user constraints."""
         filtered_products = []
@@ -64,6 +65,7 @@ class ProductLookupManager:
                 # Check if the product matches all the constraints
                 if (any(keyword.lower() in product.tags_list for keyword in keywords) and
                     any(concern.lower() in product.tags_list for concern in concerns) and
+                    any(name.lower() in product.name.lower() for name in name) and
                     any(ingredient.lower() in product.ingredients_list for ingredient in top_ingredients) and
                     not any(ingredient.lower() in product.ingredients_list for ingredient in avoid_ingredients)):
                     filtered_products.append(product)

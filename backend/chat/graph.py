@@ -94,16 +94,11 @@ class ConversationGraph:
             "classify_intent",
             self._route_business_flow,
             {
-                "followup_needed": "generate_followup",
                 "recommend": "retrieval", 
                 "informational": "retrieval",
                 "direct_answer": "generate_ui"  # For OVERVIEW/OTHER
             }
         )
-        
-        # INTERRUPT FLOW: Followup → Wait for User → INTERRUPT
-        workflow.add_edge("generate_followup", "wait_for_user")
-        # workflow.add_edge("wait_for_user", END)  # This creates the interrupt
         
         # Recommendation flow: Retrieval → Rank → Generate
         workflow.add_conditional_edges(
@@ -114,9 +109,21 @@ class ConversationGraph:
                 "recommendation": "rank_products"    # Product ranking for shopping
             }
         )
+
+        workflow.add_conditional_edges(
+            "rank_products",
+            self._route_after_ranking,
+            {
+                "followup_needed": "generate_followup",
+                "informational": "generate_ui",
+                "recommendation": "generate_ui"
+            }
+        )
+
+        # INTERRUPT FLOW: Followup → Wait for User → INTERRUPT
+        workflow.add_edge("generate_followup", "wait_for_user")
+        # workflow.add_edge("wait_for_user", END)  # This creates the interrupt
         
-        # Final steps
-        workflow.add_edge("rank_products", "generate_ui")
         workflow.add_edge("generate_ui", END)
     
     def _wait_for_user_input(self, state: ChatState) -> Dict[str, Any]:
@@ -137,9 +144,6 @@ class ConversationGraph:
         """
         BUSINESS-FOCUSED routing based on intent and followup needs.
         """
-        # Check if followup is needed (highest priority) - now applies to all intents
-        if state.ask_followup == "yes":
-            return "followup_needed"
         
         # Route based on business intent
         if state.intent in ["RECOMMEND_SPECIFIC", "RECOMMEND_VAGUE"]:
@@ -161,6 +165,18 @@ class ConversationGraph:
                    intent=state.intent,
                    documents_retrieved=len(state.retrieved_docs))
         
+        if state.intent in ["INFO_GENERAL", "INFO_PRODUCT"]:
+            return "informational"
+        else:
+            return "recommendation"
+    
+    def _route_after_ranking(self, state: ChatState) -> Literal["informational", "recommendation"]:
+        """
+        Route after ranking based on business intent.
+        """
+        if state.ask_followup == "yes":
+            return "followup_needed"
+
         if state.intent in ["INFO_GENERAL", "INFO_PRODUCT"]:
             return "informational"
         else:

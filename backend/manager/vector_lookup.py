@@ -138,7 +138,10 @@ class VectorStoreManager:
                 if key in ['top_ingredients', 'tags']:
                     # Support is pending https://github.com/chroma-core/chroma/issues/3415
                     continue
-                if key in ['price_usd']:
+                # Name extraction is causing issues sometimes, wrong name is being picked
+                # Leading to no products to be shown, better to use no name filter for now
+                # To appply in manual filter
+                if key in ['price_usd', 'name']:
                     # Handled in manual filter
                     continue
                 if value is None:

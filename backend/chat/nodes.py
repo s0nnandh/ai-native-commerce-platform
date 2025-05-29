@@ -245,7 +245,7 @@ class ConversationOrchestrator:
                 retrieved_docs=state.retrieved_docs
             )
             
-            final_products = ranked_products[:RetrievalConfig.TOP_PRODUCTS_FOR_RECOMMENDATION]
+            final_products = ranked_products
             
             
             return {"products": final_products}
@@ -325,6 +325,7 @@ class ConversationOrchestrator:
             concerns=extracted_info.concerns,
             top_ingredients=extracted_info.top_ingredients,
             avoid_ingredients=extracted_info.avoid_ingredients,
+            name=extracted_info.name
         )
 
 
@@ -348,9 +349,18 @@ class ConversationOrchestrator:
     
     def _generate_recommendation_response_data(self, state: ChatState) -> Tuple[str, List[Citation]]:
         """Generate product recommendation with enhanced context (returns data for update pattern)."""
-        top_products = state.products[:RetrievalConfig.TOP_PRODUCTS_FOR_RECOMMENDATION]
+        top_docs = state.retrieved_docs[:RetrievalConfig.TOP_PRODUCTS_FOR_RECOMMENDATION]
         
-        if not top_products:
+        relevant_products = []
+        for i, doc in enumerate(top_docs):
+            doc_type = doc.metadata.get('doc_type')
+            if doc_type == 'product':
+                product_id = doc.metadata.get('product_id')
+                product = self.product_lookup_manager.get_product_by_id(product_id)
+                if product:
+                    relevant_products.append(product)
+                    continue
+        if not relevant_products:
             return ErrorMessages.NO_PRODUCTS_FOUND, [], []
         
         # Generate recommendation using enhanced prompt with conversation history
@@ -359,7 +369,7 @@ class ConversationOrchestrator:
         user_prompt = self.response_prompts.get_user_recommendation_prompt(
             user_messages=state.user_messages,
             ai_messages=state.ai_messages,
-            products=top_products
+            products=relevant_products
         )
 
         # log examples
@@ -401,14 +411,13 @@ class ConversationOrchestrator:
             if len(snippet_text) > RetrievalConfig.MAX_SNIPPET_LENGTH:
                 snippet_text = snippet_text[:RetrievalConfig.MAX_SNIPPET_LENGTH] + "..."
             
-            snippets.append({
+            if len(snippets) <= RetrievalConfig.MAX_CITATIONS:
+                snippets.append({
                 "id": doc.id,
                 "content": content,
                 "snippet": snippet_text,
                 "source": doc.metadata.get('source', 'Product Information')
             })
-            if len(snippets) >= RetrievalConfig.MAX_CITATIONS:
-                break
         
         filtered_products = self._apply_manual_filters(
             products=products,

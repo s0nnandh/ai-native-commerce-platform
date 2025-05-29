@@ -54,7 +54,7 @@ class RetrievalConfig:
     """Configuration for vector search and product retrieval."""
     
     # Vector search parameters
-    DEFAULT_SIMILARITY_K = 10
+    DEFAULT_SIMILARITY_K = 25
     MAX_SIMILARITY_K = 50
     MIN_SIMILARITY_SCORE = 0.3
     SIMILARITY_SCORE=0.5
