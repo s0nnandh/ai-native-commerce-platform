@@ -31,6 +31,7 @@ class ProductLookupManager:
     def _load_products(self):
         """Load products from JSON file."""
         try:
+            logger.info("load_products", product_file=self.products_file)
             if not os.path.exists(self.products_file):
                 self._create_sample_data()
             

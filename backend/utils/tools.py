@@ -5,8 +5,6 @@ from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 
-from utils.constants import IntentConfig, COMMON_SKIN_CONCERNS, VALID_CATEGORIES
-
 
 class DetectedConstraints(BaseModel):
     """Structured constraints detected from user message."""
@@ -41,41 +39,92 @@ class DetectedConstraints(BaseModel):
 
 
 @tool
-def classify_intent_and_extract_constraints(
-    intent: Literal["informational", "specific", "vague", "followup_answered"],
-    ask_followup: bool,
-    detected_constraints: DetectedConstraints,
+def classify_user_intent(
+    intent: Literal[
+        "RECOMMEND_SPECIFIC", 
+        "RECOMMEND_VAGUE", 
+        "FOLLOWUP_ANSWER", 
+        "INFORMATIONAL", 
+        "OVERVIEW", 
+        "OTHER"
+    ],
+    category: Optional[str] = None,
+    skin_concern: Optional[str] = None,
+    avoid_ingredients: Optional[List[str]] = None,
+    desired_ingredients: Optional[List[str]] = None,
+    price_cap: Optional[float] = None,
+    target_sku: Optional[str] = None,
+    finish: Optional[str] = None,
+    ask_followup: bool = False,
     followup_question: Optional[str] = None,
     confidence_score: Optional[float] = None
-) -> Dict[str, Any]:
+) -> str:
     """
-    Classify the user's intent and extract skincare product constraints.
+    Classify user intent and extract skincare product constraints.
+    
+    Intent Categories with Business Logic:
+    
+    RECOMMEND_SPECIFIC: User has enough info (category + 1-2 details)
+    - "Vitamin C serum under $40" 
+    - "Hydrating toner for acne-prone skin"
+    - Set ask_followup = False
+    
+    RECOMMEND_VAGUE: User wants products but needs clarification
+    - "Something gentle for summer"
+    - "Looking for skincare gifts" 
+    - Set ask_followup = True if missing critical info
+    
+    FOLLOWUP_ANSWER: Direct response to previous question
+    - "My skin is oily", "Under $30 please"
+    - Set ask_followup = False (NEVER ask new questions)
+    
+    INFORMATIONAL: Questions about products/ingredients
+    - "Is retinol safe during pregnancy?"
+    - Set ask_followup = True if missing important/critical info
+    
+    OVERVIEW: Company/policy questions
+    - "What's your return policy?"
+    - Set ask_followup = False
+    
+    OTHER: Greetings, thanks, off-topic
+    - "Hi there!", "Thank you!"
+    - Set ask_followup = False
+    
+    Constraint Extraction:
+    - category: cleanser, serum, moisturizer, toner, mask, sunscreen
+    - skin_concern: acne, dryness, aging, sensitivity, oiliness
+    - avoid_ingredients: fragrance, alcohol, parabens, sulfates
+    - desired_ingredients: hyaluronic acid, vitamin C, retinol, niacinamide
+    - price_cap: numerical budget (e.g. 40.0 for "under $40")
+    - target_sku: specific product names mentioned
+    - finish: matte, dewy, lightweight, rich, gel, cream
     
     Args:
-        intent: The classified intent of the user message
-            - informational: User asking for information/advice about products
-            - specific: User has clear product requirements
-            - vague: User query needs clarification
-            - followup_answered: User responding to a previous question
-            
-        ask_followup: Whether a follow-up question should be asked to clarify requirements
-        
-        detected_constraints: Structured constraints extracted from the message
-        
-        followup_question: Optional follow-up question if ask_followup is True
-        
-        confidence_score: Optional confidence in the classification (0.0-1.0)
+        intent: The classified intent category
+        category: Product category if mentioned
+        skin_concern: Primary skin concern if mentioned
+        avoid_ingredients: List of ingredients to avoid
+        desired_ingredients: List of preferred ingredients
+        price_cap: Maximum budget in USD
+        target_sku: Specific product name or SKU
+        finish: Texture/finish preference
+        ask_followup: Whether to ask a follow-up question
+        followup_question: The follow-up question if ask_followup is True
+        confidence_score: Confidence in classification (0.0-1.0)
     
     Returns:
-        Dictionary containing the classification results
+        Dictionary with classification results and extracted constraints
     """
-    return {
-        "intent": intent,
-        "ask_followup": ask_followup,
-        "detected_constraints": detected_constraints.dict(),
-        "followup_question": followup_question,
-        "confidence_score": confidence_score
-    }
+    # Build detected constraints dict, filtering out None/empty values
+    return "Detecting constraints and intent"
+    
+    # return {
+    #     "intent": intent,
+    #     "ask_followup": ask_followup,
+    #     "constraints": detected_constraints,
+    #     "followup_question": followup_question,
+    #     "confidence_score": confidence_score
+    # }
 
 
 @tool  
@@ -114,7 +163,7 @@ class ToolManager:
     @staticmethod
     def get_intent_classification_tools() -> List:
         """Get tools for intent classification."""
-        return [classify_intent_and_extract_constraints]
+        return [classify_user_intent]
     
     @staticmethod
     def get_preference_extraction_tools() -> List:

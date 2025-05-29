@@ -8,8 +8,8 @@ class LLMConfig:
     """LLM model configurations and settings."""
     
     # Model names
-    GPT_3_5_MODEL = "gpt-3.5-turbo-1106"
-    GEMINI_FLASH_MODEL = "gemini-1.5-flash-latest"
+    GPT_4_O_MINI_MODEL = "gpt-4o-mini"
+    GEMINI_2_0_FLASH_MODEL = "gemini-2.0-flash"
     
     # Temperature settings
     CLASSIFICATION_TEMPERATURE = 0  # Deterministic for intent classification
@@ -41,8 +41,8 @@ class ConversationConfig:
         'finish'
     ]
     
-    CRITICAL_CONSTRAINTS = ['category', 'skin_concern']
-    IMPORTANT_CONSTRAINTS = ['avoid_ingredients', 'target_sku']  
+    CRITICAL_CONSTRAINTS = ['category']
+    IMPORTANT_CONSTRAINTS = ['skin_concern', 'avoid_ingredients', 'target_sku']  
     NICE_TO_HAVE_CONSTRAINTS = ['desired_ingredients', 'price_cap', 'finish']
     
     # Minimum info threshold for stopping followup questions
@@ -54,9 +54,10 @@ class RetrievalConfig:
     """Configuration for vector search and product retrieval."""
     
     # Vector search parameters
-    DEFAULT_SIMILARITY_K = 25
+    DEFAULT_SIMILARITY_K = 10
     MAX_SIMILARITY_K = 50
     MIN_SIMILARITY_SCORE = 0.3
+    SIMILARITY_SCORE=0.5
     
     # Product ranking
     TOP_PRODUCTS_FOR_RECOMMENDATION = 3
@@ -71,35 +72,15 @@ class RetrievalConfig:
 class ResponseConfig:
     """Configuration for AI response generation."""
     
-    # Response length limits (in words)
-    MAX_RECOMMENDATION_WORDS = 80
-    MAX_INFORMATIONAL_WORDS = 80
-    MAX_FOLLOWUP_WORDS = 30
+    # Response length limits (ULTRA CONCISE)
+    MAX_RECOMMENDATION_WORDS = 15   # ~12-15 words max
+    MAX_INFORMATIONAL_WORDS = 15    # ~12-15 words max  
+    MAX_FOLLOWUP_WORDS = 12         # ~10-12 words max
     
     # Response types
     RECOMMENDATION_MODE = "recommendation"
     INFORMATIONAL_MODE = "informational"
     FOLLOWUP_MODE = "followup"
-
-
-# Intent Classification Constants
-class IntentConfig:
-    """Configuration for intent classification."""
-    
-    VALID_INTENTS = {
-        "informational",
-        "specific", 
-        "vague",
-        "followup_answered"
-    }
-    
-    # Intent descriptions for classification prompt
-    INTENT_DESCRIPTIONS = {
-        "informational": "User is asking for information about products, ingredients, or skincare advice",
-        "specific": "User has specific product requirements and constraints",
-        "vague": "User query is unclear or needs more information to provide good recommendations",
-        "followup_answered": "User is responding to a previous follow-up question"
-    }
 
 
 # Error Messages and Fallbacks
@@ -141,43 +122,8 @@ class LoggingConfig:
     ]
 
 
-# Function Schema for OpenAI Function Calling
-INTENT_CLASSIFICATION_FUNCTION_SCHEMA = {
-    "name": "classify_intent",
-    "description": "Classify user intent and extract constraints for skincare product search",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "intent": {
-                "type": "string",
-                "enum": list(IntentConfig.VALID_INTENTS),
-                "description": "The classified intent of the user message"
-            },
-            "ask_followup": {
-                "type": "boolean", 
-                "description": "Whether a follow-up question should be asked"
-            },
-            "followup_question": {
-                "type": "string",
-                "description": "Optional follow-up question to ask the user"
-            },
-            "detected_constraints": {
-                "type": "object",
-                "properties": {
-                    "category": {"type": "string"},
-                    "skin_concern": {"type": "string"},
-                    "avoid_ingredients": {"type": "array", "items": {"type": "string"}},
-                    "desired_ingredients": {"type": "array", "items": {"type": "string"}},
-                    "price_cap": {"type": "number"},
-                    "target_sku": {"type": "string"},
-                    "finish": {"type": "string"}
-                },
-                "description": "Extracted constraints from the user message"
-            }
-        },
-        "required": ["intent", "ask_followup", "detected_constraints"]
-    }
-}
+# Remove manual schema - use Tools instead
+# INTENT_CLASSIFICATION_FUNCTION_SCHEMA - REMOVED (using @tool decorator)
 
 
 # Environment Configuration
@@ -208,32 +154,4 @@ CONSTRAINT_NATURAL_LANGUAGE_MAP = {
     "price_cap": "budget or price range",
     "target_sku": "specific product",
     "finish": "texture or finish preference"
-}
-
-
-# Product Categories (should match your catalog)
-VALID_CATEGORIES = {
-    "cleanser",
-    "toner", 
-    "serum",
-    "moisturizer",
-    "sunscreen",
-    "treatment",
-    "mask",
-    "oil"
-}
-
-
-# Common Skin Concerns
-COMMON_SKIN_CONCERNS = {
-    "acne",
-    "dryness", 
-    "oily_skin",
-    "sensitive_skin",
-    "aging",
-    "hyperpigmentation",
-    "rosacea",
-    "blackheads",
-    "large_pores",
-    "dullness"
 }

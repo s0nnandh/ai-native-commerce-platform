@@ -1,6 +1,6 @@
 # Core Flask and Web Framework
 flask>=2.3.0
-gunicorn>=21.0.0
+flask-cors>=4.0.0  # For handling CORS
 
 # LangChain and LangGraph
 langchain>=0.1.0
@@ -12,9 +12,6 @@ langgraph>=0.1.0
 # LangSmith for tracing and monitoring
 langsmith>=0.1.0
 
-# Vector Database
-chromadb>=0.4.0
-
 # Data Processing and Validation
 pydantic>=2.5.0
 
@@ -24,15 +21,3 @@ structlog>=23.0.0
 # Utilities
 python-dotenv>=1.0.0
 requests>=2.31.0
-
-# Development and Testing (optional)
-pytest>=7.4.0
-pytest-flask>=1.3.0
-black>=23.0.0
-isort>=5.12.0
-
-# Production Dependencies
-psutil>=5.9.0  # For monitoring system resources
-
-# Fix dependency conflicts
-opentelemetry-proto==1.33.1  # Explicitly set version to resolve conflict

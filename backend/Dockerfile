@@ -20,6 +20,7 @@ RUN mkdir -p data
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV FLASK_APP=app.py
+ENV PYTHONUNBUFFERED=1
 
 # Expose port
 EXPOSE 5000

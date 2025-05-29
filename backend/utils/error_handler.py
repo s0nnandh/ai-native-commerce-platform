@@ -5,6 +5,7 @@ import time
 from typing import Dict, Any, Tuple
 import structlog
 from flask import jsonify
+from utils.validation import ValidationError
 
 logger = structlog.get_logger()
 
@@ -60,7 +61,7 @@ def create_fallback_response() -> Dict[str, Any]:
     """Create a fallback response when everything fails."""
     return {
         "text": "I'm experiencing technical difficulties. Please try again.",
-        "ask_followup": False,
+        "ask_followup": "no",
         "followup_key": None,
         "products": [],
         "citations": [],

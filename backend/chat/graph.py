@@ -1,25 +1,17 @@
-"""
-LangGraph orchestration with checkpointing for conversational store.
-Manages conversation flow and state persistence using session_id.
-"""
 import structlog
 from typing import Dict, Any, Literal
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import ToolNode
-import time
-
 from .state import ChatState
 from .nodes import (
     entry_node,
     classify_intent_node, 
-    evaluate_constraints_node,
-    ask_followup_node,
+    generate_followup_node,
     retrieval_node,
     rank_products_node,
     generate_ui_node
 )
-from utils.constants import ConversationConfig
+import time
 
 logger = structlog.get_logger()
 
@@ -55,8 +47,9 @@ class ConversationGraph:
         # Add all nodes
         workflow.add_node("entry", entry_node)
         workflow.add_node("classify_intent", classify_intent_node)
-        workflow.add_node("evaluate_constraints", evaluate_constraints_node)
-        workflow.add_node("ask_followup", ask_followup_node)
+        # workflow.add_node("evaluate_constraints", evaluate_constraints_node)
+        workflow.add_node("generate_followup", generate_followup_node)
+        workflow.add_node("wait_for_user", self._wait_for_user_input)  # Interrupt node
         workflow.add_node("retrieval", retrieval_node)
         workflow.add_node("rank_products", rank_products_node)
         workflow.add_node("generate_ui", generate_ui_node)
@@ -67,8 +60,11 @@ class ConversationGraph:
         # Define the conversation flow
         self._add_conversation_edges(workflow)
         
-        # Compile graph with checkpointer
-        compiled_graph = workflow.compile(checkpointer=self.checkpointer)
+        # Compile graph with checkpointer and interrupt capability
+        compiled_graph = workflow.compile(
+            checkpointer=self.checkpointer,
+            interrupt_before=["wait_for_user"]  # Interrupt before waiting for user
+        )
         
         logger.info("conversation_graph_compiled", 
                    nodes_count=len(workflow.nodes),
@@ -78,156 +74,99 @@ class ConversationGraph:
     
     def _add_conversation_edges(self, workflow: StateGraph):
         """
-        Add edges defining the conversation flow logic.
+        Add edges for BUSINESS-FOCUSED conversation flow with interrupts.
         
-        The flow follows this pattern:
-        1. Entry → Intent Classification → Constraint Evaluation
-        2. Branch based on intent and followup needs:
-           - If informational → Retrieval → Generate UI
-           - If needs followup → Ask Followup → END (wait for next turn)
-           - Else → Retrieval → Rank Products → Generate UI
+        Flow:
+        1. Entry → Classify → Evaluate
+        2. Branch based on business intent:
+           - RECOMMEND_SPECIFIC/VAGUE + no followup → Retrieval → Recommend
+           - RECOMMEND_VAGUE + followup needed → Generate Followup → INTERRUPT
+           - INFO_PRODUCT → Retrieval → Answer
+           - INFO_GENERAL/OTHER → Generate UI (handle directly)
         """
         
         # Sequential flow: Entry → Classification → Evaluation
         workflow.add_edge("entry", "classify_intent")
-        workflow.add_edge("classify_intent", "evaluate_constraints")
+        # workflow.add_edge("classify_intent", "evaluate_constraints")
         
-        # Conditional branching from constraint evaluation
+        # BUSINESS-FOCUSED conditional branching
         workflow.add_conditional_edges(
-            "evaluate_constraints",
-            self._route_after_constraints,
+            "classify_intent",
+            self._route_business_flow,
             {
+                "followup_needed": "generate_followup",
+                "recommend": "retrieval", 
                 "informational": "retrieval",
-                "ask_followup": "ask_followup", 
-                "recommendation": "retrieval"
+                "direct_answer": "generate_ui"  # For OVERVIEW/OTHER
             }
         )
         
-        # Followup path (terminal - waits for next user input)
-        workflow.add_edge("ask_followup", END)
+        # INTERRUPT FLOW: Followup → Wait for User → INTERRUPT
+        workflow.add_edge("generate_followup", "wait_for_user")
+        # workflow.add_edge("wait_for_user", END)  # This creates the interrupt
         
-        # Informational path: Retrieval → Generate UI → END
+        # Recommendation flow: Retrieval → Rank → Generate
         workflow.add_conditional_edges(
             "retrieval",
             self._route_after_retrieval,
             {
-                "informational": "generate_ui",
-                "recommendation": "rank_products"
+                "informational": "generate_ui",      # Direct answer for questions
+                "recommendation": "rank_products"    # Product ranking for shopping
             }
         )
         
-        # Recommendation path: Rank Products → Generate UI → END
+        # Final steps
         workflow.add_edge("rank_products", "generate_ui")
         workflow.add_edge("generate_ui", END)
     
-    def _route_after_constraints(self, state: ChatState) -> Literal["informational", "ask_followup", "recommendation"]:
+    def _wait_for_user_input(self, state: ChatState) -> Dict[str, Any]:
         """
-        Route conversation after constraint evaluation.
-        
-        Args:
-            state: Current conversation state
-            
-        Returns:
-            Next route to take in the conversation
+        Interrupt node - triggers graph pause to wait for user input.
+        This preserves all conversation context.
         """
-        logger.info("routing_after_constraints", 
+        logger.info("waiting_for_user_input", 
                    session_id=state.session_id,
-                   intent=state.intent,
-                   ask_followup=state.ask_followup,
-                   turn_count=state.turn_count)
+                   turn_count=state.turn_count,
+                   last_ai_message=state.ai_message)
         
-        # Always ask followup if needed (highest priority)
-        if state.ask_followup:
-            return "ask_followup"
+        # The interrupt happens automatically due to interrupt_before=["wait_for_user"]
+        # This function just logs and returns empty update
+        return {}
+    
+    def _route_business_flow(self, state: ChatState) -> Literal["followup_needed", "recommend", "informational", "direct_answer"]:
+        """
+        BUSINESS-FOCUSED routing based on intent and followup needs.
+        """
+        # Check if followup is needed (highest priority) - now applies to all intents
+        if state.ask_followup == "yes":
+            return "followup_needed"
         
-        # Route based on intent
-        if state.intent == "informational":
+        # Route based on business intent
+        if state.intent in ["RECOMMEND_SPECIFIC", "RECOMMEND_VAGUE"]:
+            return "recommend"
+        elif state.intent in ["INFO_GENERAL", "INFO_PRODUCT"]:
             return "informational"
+        elif state.intent in ["OTHER"]:
+            return "direct_answer"
         else:
-            # All other intents go to recommendation flow
-            return "recommendation"
+            # Default to recommendation for unknown intents
+            return "recommend"
     
     def _route_after_retrieval(self, state: ChatState) -> Literal["informational", "recommendation"]:
         """
-        Route conversation after retrieval based on intent.
-        
-        Args:
-            state: Current conversation state
-            
-        Returns:
-            Next route based on intent type
+        Route after retrieval based on business intent.
         """
         logger.info("routing_after_retrieval",
                    session_id=state.session_id, 
                    intent=state.intent,
                    documents_retrieved=len(state.retrieved_docs))
         
-        if state.intent == "informational":
+        if state.intent in ["INFO_GENERAL", "INFO_PRODUCT"]:
             return "informational"
         else:
             return "recommendation"
     
-    async def process_message(
-        self, 
-        session_id: str, 
-        user_message: str,
-        config: Dict[str, Any] = None
-    ) -> ChatState:
-        """
-        Process a user message through the conversation graph.
-        
-        Args:
-            session_id: Unique session identifier for state persistence
-            user_message: User's input message
-            config: Optional configuration for the graph execution
-            
-        Returns:
-            Updated ChatState after processing
-        """
-        start_time = time.time()
-        
-        # Create thread configuration for checkpointing
-        thread_config = {
-            "configurable": {
-                "thread_id": session_id
-            }
-        }
-        
-        # Merge with any additional config
-        if config:
-            thread_config.update(config)
-        
-        logger.info("processing_message_start",
-                   session_id=session_id,
-                   message_length=len(user_message))
-        
-        try:
-            # Get current state from checkpoint or create new
-            current_state = await self._get_or_create_state(session_id, user_message)
-            
-            # Process through the graph
-            result = await self.graph.ainvoke(
-                current_state,
-                config=thread_config
-            )
-            
-            # Log successful processing
-            latency = int((time.time() - start_time) * 1000)
-            logger.info("processing_message_success",
-                       session_id=session_id,
-                       final_intent=result.intent,
-                       turn_count=result.turn_count,
-                       ask_followup=result.ask_followup,
-                       products_found=len(result.products),
-                       total_latency_ms=latency)
-            
-            return result
-            
-        except Exception as e:
-            logger.error("processing_message_error",
-                        session_id=session_id,
-                        error=str(e))
-            raise
+    # Remove async methods - keep only sync + streaming-ready methods
     
     def process_message_sync(
         self, 
@@ -264,13 +203,15 @@ class ConversationGraph:
         
         try:
             # Get current state from checkpoint or create new
-            current_state = self._get_or_create_state_sync(session_id, user_message)
+            current_state = self.get_conversation_history(session_id, user_message)
             
             # Process through the graph (synchronous)
             result = self.graph.invoke(
                 current_state,
                 config=thread_config
             )
+
+            result = ChatState(**result)
             
             # Log successful processing
             latency = int((time.time() - start_time) * 1000)
@@ -371,7 +312,7 @@ class ConversationGraph:
         logger.info("new_state_created_sync", session_id=session_id)
         return new_state
     
-    def get_conversation_history(self, session_id: str) -> Dict[str, Any]:
+    def get_conversation_history(self, session_id: str, new_user_message: str) -> Dict[str, Any]:
         """
         Get conversation history for a session.
         
@@ -383,48 +324,32 @@ class ConversationGraph:
         """
         try:
             thread_config = {"configurable": {"thread_id": session_id}}
-            checkpoint = self.checkpointer.get(thread_config)
+            # checkpoint = self.checkpointer.get(thread_config)
+
+            previous_state = ChatState(
+                session_id=session_id,
+                turn_count=0,
+                user_messages=[],
+                ai_messages=[]
+            )
+            for state in self.graph.get_state_history(thread_config):
+                logger.info("get_history_state", next=state.next)
+                if not state.next:
+                    break
+                previous_state = ChatState(**state.values)
+                break
+            previous_state.user_messages.append(new_user_message)
+            # logger.info("get_history_success",
+            #            session_id=session_id,
+            #            previous_state=previous_state)
             
-            if checkpoint and checkpoint.values:
-                state = ChatState(**checkpoint.values)
-                return {
-                    "session_id": session_id,
-                    "turn_count": state.turn_count,
-                    "intent": state.intent,
-                    "constraints": state.constraints,
-                    "last_message": state.ai_message
-                }
+            return previous_state
         except Exception as e:
             logger.error("get_history_error", 
                         session_id=session_id,
                         error=str(e))
         
-        return {"session_id": session_id, "turn_count": 0, "constraints": {}}
-    
-    def clear_conversation(self, session_id: str) -> bool:
-        """
-        Clear conversation history for a session.
-        
-        Args:
-            session_id: Session identifier
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            thread_config = {"configurable": {"thread_id": session_id}}
-            # Note: MemorySaver doesn't have a direct delete method
-            # In production, you might use a database-backed checkpointer
-            # For now, we can't truly delete from MemorySaver
-            
-            logger.info("conversation_clear_requested", session_id=session_id)
-            return True
-            
-        except Exception as e:
-            logger.error("clear_conversation_error",
-                        session_id=session_id, 
-                        error=str(e))
-            return False
+        return {"session_id": session_id, "turn_count": 0}
 
 
 # Global graph instance for Flask application
@@ -464,16 +389,19 @@ def create_response_dict(state: ChatState, latency_ms: int) -> Dict[str, Any]:
         Dictionary matching the API contract
     """
     return {
-        "text": state.ai_message or "",
+        "text": "" if not state.ai_messages else state.ai_messages[-1],
         "ask_followup": state.ask_followup,
-        "followup_key": state.followup_key,
+        "followup_topics": state.followup_topics,
         "products": [
             {
-                "sku_id": p.product_id,
+                "product_id": p.product_id,
                 "name": p.name,
-                "price": p.price_usd,
-                "margin": p.margin_percent,
-                "category": p.category
+                "price_usd": p.price_usd,
+                "margin_percent": p.margin_percent,
+                "category": p.category,
+                "top_ingredients": p.top_ingredients,
+                "description": p.description,
+                "tags": p.tags
             } for p in state.products
         ],
         "citations": [
@@ -484,25 +412,3 @@ def create_response_dict(state: ChatState, latency_ms: int) -> Dict[str, Any]:
         ],
         "latency_ms": latency_ms
     }
-
-
-def validate_session_id(session_id: str) -> bool:
-    """
-    Validate session ID format.
-    
-    Args:
-        session_id: Session identifier to validate
-        
-    Returns:
-        True if valid, False otherwise
-    """
-    import re
-    import uuid
-    
-    try:
-        # Check if it's a valid UUID
-        uuid.UUID(session_id)
-        return True
-    except ValueError:
-        # Check if it's a reasonable string format
-        return bool(re.match(r'^[a-zA-Z0-9_-]{8,64}$', session_id))
