@@ -1,0 +1,392 @@
+[
+  {
+    "product_id": "SRM001",
+    "name": "Radiant Renewal Serum",
+    "category": "serum",
+    "description": "Brightens dull skin and smooths fine lines for a lit-from-within glow.",
+    "top_ingredients": "Ascorbic Acid (Vitamin C); Hyaluronic Acid; Niacinamide",
+    "tags": "antiaging|brightening|hydration",
+    "price_usd": 72.0,
+    "margin_percent": 48.0
+  },
+  {
+    "product_id": "SRM002",
+    "name": "Dewdrop Hydration Elixir",
+    "category": "serum",
+    "description": "Water-weight serum that drenches skin in long-lasting moisture and repairs the barrier.",
+    "top_ingredients": "Hyaluronic Acid; Panthenol; Vitamin F (Linoleic Acid)",
+    "tags": "hydration|barrier-repair|dry-skin",
+    "price_usd": 58.0,
+    "margin_percent": 42.0
+  },
+  {
+    "product_id": "SRM003",
+    "name": "Clear Slate BHA Serum",
+    "category": "serum",
+    "description": "Clarifies congested pores and keeps oil in check without over-drying.",
+    "top_ingredients": "Salicylic Acid; Zinc PCA; Green-Tea Extract",
+    "tags": "acne-prone|oily-control|pore-care",
+    "price_usd": 46.0,
+    "margin_percent": 40.0
+  },
+  {
+    "product_id": "SRM004",
+    "name": "Midnight Peptide Firming Serum",
+    "category": "serum",
+    "description": "Overnight peptide complex visibly firms and nourishes mature skin.",
+    "top_ingredients": "Palmitoyl Tripeptide-5; Soluble Collagen; Vitamin E",
+    "tags": "antiaging|firming|dry-skin",
+    "price_usd": 85.0,
+    "margin_percent": 52.0
+  },
+  {
+    "product_id": "SRM005",
+    "name": "Calm & Soothe Sensitive Serum",
+    "category": "serum",
+    "description": "Lightweight gel serum that calms redness and strengthens sensitive skin.",
+    "top_ingredients": "Centella Asiatica; Allantoin; Beta-Glucan",
+    "tags": "sensitive|redness-relief|hydration",
+    "price_usd": 49.0,
+    "margin_percent": 38.0
+  },
+  {
+    "product_id": "SRM006",
+    "name": "Flash Fade Spot Corrector",
+    "category": "serum",
+    "description": "Targets dark spots and post-acne marks for an even, luminous tone.",
+    "top_ingredients": "Tranexamic Acid; Niacinamide; Licorice-Root Extract",
+    "tags": "brightening|antiaging|hyperpigmentation",
+    "price_usd": 79.0,
+    "margin_percent": 50.0
+  },
+  {
+    "product_id": "SRM007",
+    "name": "Velvet Matte Pore Serum",
+    "category": "serum",
+    "description": "Blurs shine and minimizes pores for a soft-focus finish.",
+    "top_ingredients": "Niacinamide; Tremella Mushroom Extract; Willow-Bark",
+    "tags": "oily-skin|pore-refining|matte",
+    "price_usd": 54.0,
+    "margin_percent": 41.0
+  },
+  {
+    "product_id": "SRM008",
+    "name": "AquaShield Barrier Booster",
+    "category": "serum",
+    "description": "Ceramide-rich serum that reinforces the lipid barrier and locks in moisture.",
+    "top_ingredients": "Ceramides NP+AP+EOP; Vitamin F; Squalane",
+    "tags": "hydration|barrier-repair|dry-skin",
+    "price_usd": 65.0,
+    "margin_percent": 44.0
+  },
+  {
+    "product_id": "SRM009",
+    "name": "Sunrise Retinal Serum",
+    "category": "serum",
+    "description": "Next-gen retinaldehyde visibly smooths wrinkles with less irritation.",
+    "top_ingredients": "Retinaldehyde; Bakuchiol; Hyaluronic Acid",
+    "tags": "antiaging|fine-lines|brightening",
+    "price_usd": 95.0,
+    "margin_percent": 55.0
+  },
+  {
+    "product_id": "SRM010",
+    "name": "Glow Guard Antioxidant Serum",
+    "category": "serum",
+    "description": "Potent antioxidant trio defends against pollution and UV stress.",
+    "top_ingredients": "Ferulic Acid; Ascorbic Acid (Vit C); Vitamin E",
+    "tags": "antioxidant|brightening|antiaging",
+    "price_usd": 82.0,
+    "margin_percent": 47.0
+  },
+  {
+    "product_id": "TNR001",
+    "name": "Rosewater Rescue Hydrating Toner",
+    "category": "toner",
+    "description": "Alcohol-free rosewater blend that replenishes moisture and soothes tight, very-dry skin.",
+    "top_ingredients": "Damask Rose Water; Glycerin; Aloe Vera Juice",
+    "tags": "hydration|very-dry|sensitive|natural",
+    "price_usd": 32.0,
+    "margin_percent": 40.0
+  },
+  {
+    "product_id": "TNR002",
+    "name": "ClearWave 2% BHA Toner",
+    "category": "toner",
+    "description": "Oil-controlling liquid exfoliant unclogs pores and keeps breakouts at bay for oily, acne-prone skin.",
+    "top_ingredients": "Salicylic Acid 2%; Witch Hazel; Niacinamide",
+    "tags": "oily|acne-prone|pore-care|BHA",
+    "price_usd": 38.0,
+    "margin_percent": 45.0
+  },
+  {
+    "product_id": "TNR003",
+    "name": "GlowPrep 5% Glycolic Toner",
+    "category": "toner",
+    "description": "Daily AHA toner that sweeps away dull cells and brightens uneven tone.",
+    "top_ingredients": "Glycolic Acid 5%; Lactic Acid; Rooibos Extract",
+    "tags": "AHA|brightening|combo-skin",
+    "price_usd": 42.0,
+    "margin_percent": 47.0
+  },
+  {
+    "product_id": "TNR004",
+    "name": "CalmCucumber pH Mist",
+    "category": "toner",
+    "description": "Ultra-gentle mist balances pH and calms redness—ideal for reactive or sensitized skin.",
+    "top_ingredients": "Cucumber Water; Allantoin; Panthenol",
+    "tags": "sensitive|redness-relief|natural|hydration",
+    "price_usd": 28.0,
+    "margin_percent": 36.0
+  },
+  {
+    "product_id": "TNR005",
+    "name": "SmoothStart PHA Tonic",
+    "category": "toner",
+    "description": "Mild polyhydroxy toner refines texture without irritation—great for combination or first-time exfoliators.",
+    "top_ingredients": "Gluconolactone (PHA); Green Tea Extract; Hyaluronic Acid",
+    "tags": "combo-skin|gentle-exfoliation|PHA",
+    "price_usd": 35.0,
+    "margin_percent": 42.0
+  },
+  {
+    "product_id": "CRM001",
+    "name": "HydraCloud Daily Gel-Cream SPF 30",
+    "category": "sunscreen",
+    "description": "Weightless water-gel that floods skin with moisture while protecting against UVA/UVB.",
+    "top_ingredients": "Hyaluronic Acid; Niacinamide; Zinc Oxide (SPF 30)",
+    "tags": "hydration|SPF|day-cream|combo-skin",
+    "price_usd": 42.0,
+    "margin_percent": 40.0
+  },
+  {
+    "product_id": "CRM002",
+    "name": "Velvet Night Repair Cream",
+    "category": "cream / moisturizer",
+    "description": "Luxurious overnight treatment that boosts collagen and repairs the skin barrier while you sleep.",
+    "top_ingredients": "Retinol; Peptides; Squalane",
+    "tags": "night-repair|antiaging|dry-skin",
+    "price_usd": 68.0,
+    "margin_percent": 48.0
+  },
+  {
+    "product_id": "CRM003",
+    "name": "Radiance Spot-Bright Eye Cream",
+    "category": "cream / moisturizer",
+    "description": "Brightens dark circles and smooths fine lines around delicate eye area.",
+    "top_ingredients": "Vitamin C; Caffeine; Niacinamide",
+    "tags": "eye-care|brightening|antiaging|hydration",
+    "price_usd": 55.0,
+    "margin_percent": 46.0
+  },
+  {
+    "product_id": "CRM004",
+    "name": "Deep Nourish Body Butter",
+    "category": "cream / moisturizer",
+    "description": "Ultra-rich whipped butter that melts into skin for 24-hour nourishment.",
+    "top_ingredients": "Shea Butter; Cocoa Butter; Vitamin E",
+    "tags": "body|very-dry|hydration|natural",
+    "price_usd": 38.0,
+    "margin_percent": 35.0
+  },
+  {
+    "product_id": "CRM005",
+    "name": "SmoothLift Wrinkle Corrector",
+    "category": "cream / moisturizer",
+    "description": "Targeted wrinkle-filler cream visibly softens lines and plumps skin.",
+    "top_ingredients": "Palmitoyl Tripeptide-1; Hyaluronic Acid; Bakuchiol",
+    "tags": "wrinkle-care|antiaging|plumping",
+    "price_usd": 85.0,
+    "margin_percent": 52.0
+  },
+  {
+    "product_id": "CRM006",
+    "name": "BarrierFix Ceramide Cream",
+    "category": "cream / moisturizer",
+    "description": "Ceramide-packed cream that restores a compromised skin barrier and calms redness.",
+    "top_ingredients": "Ceramides NP+AP+EOP; Panthenol; Cholesterol",
+    "tags": "barrier-repair|sensitive|hydration",
+    "price_usd": 62.0,
+    "margin_percent": 44.0
+  },
+  {
+    "product_id": "CRM007",
+    "name": "ClearMatte Oil-Control Gel Moisturizer",
+    "category": "cream / moisturizer",
+    "description": "Lightweight gel absorbs instantly, controls shine, and keeps pores clear.",
+    "top_ingredients": "Niacinamide; Green-Tea Extract; Willow-Bark",
+    "tags": "oily-skin|acne-prone|matte|hydration",
+    "price_usd": 48.0,
+    "margin_percent": 38.0
+  },
+  {
+    "product_id": "CRM008",
+    "name": "SunShield Mineral Moisturizer SPF 50",
+    "category": "cream / moisturizer",
+    "description": "Broad-spectrum mineral sunscreen meets daily moisturizer for outdoor days.",
+    "top_ingredients": "Titanium Dioxide; Zinc Oxide (SPF 50); Aloe Vera",
+    "tags": "SPF|protection|sensitive|day-cream",
+    "price_usd": 58.0,
+    "margin_percent": 45.0
+  },
+  {
+    "product_id": "CRM009",
+    "name": "Arctic Hand Rescue Cream",
+    "category": "cream / moisturizer",
+    "description": "Intense hand cream that repairs cracks and shields against harsh cold.",
+    "top_ingredients": "Glycerin; Arctic Oat Lipids; Allantoin",
+    "tags": "hand-care|very-dry|repair|natural",
+    "price_usd": 29.0,
+    "margin_percent": 37.0
+  },
+  {
+    "product_id": "CRM010",
+    "name": "Glow Fade Dark-Spot Moisturizer",
+    "category": "cream / moisturizer",
+    "description": "Daily brightening cream that gradually fades discoloration while hydrating.",
+    "top_ingredients": "Tranexamic Acid; Alpha-Arbutin; Licorice Root",
+    "tags": "spot-corrector|brightening|hydration|antiaging",
+    "price_usd": 72.0,
+    "margin_percent": 48.0
+  },
+  {
+    "product_id": "SNS001",
+    "name": "SunVeil Ultra-Light Fluid SPF 50",
+    "category": "cream / moisturizer",
+    "description": "Feather-weight sunscreen fluid that sinks in instantly, leaving zero white cast and a soft-matte finish.",
+    "top_ingredients": "Zinc Oxide (SPF 50); Vitamin E; Helichrysum Extract",
+    "tags": "SPF|protection|oil-free|sensitive-skin",
+    "price_usd": 48.0,
+    "margin_percent": 46.0
+  },
+  {
+    "product_id": "MSK001",
+    "name": "HydraDream Overnight Mask",
+    "category": "face mask",
+    "description": "Cushiony sleeping mask that seals in moisture and plumps skin while you rest.",
+    "top_ingredients": "Hyaluronic Acid; Ceramides; Blue Agave Ferment",
+    "tags": "overnight|hydration|plumping|dry-skin",
+    "price_usd": 58.0,
+    "margin_percent": 49.0
+  },
+  {
+    "product_id": "MSK002",
+    "name": "Clarify Clay Rinse-Off Mask",
+    "category": "face mask",
+    "description": "Detox clay mask that vacuums pores and reduces excess oil in ten minutes.",
+    "top_ingredients": "Kaolin Clay; Charcoal; Salicylic Acid",
+    "tags": "rinse-off|clarifying|oily-skin|pore-care",
+    "price_usd": 42.0,
+    "margin_percent": 40.0
+  },
+  {
+    "product_id": "MSK003",
+    "name": "Flash Glow AHA Peel Mask",
+    "category": "face mask",
+    "description": "5-minute rinse-off jelly mask that resurfaces for glassy radiance.",
+    "top_ingredients": "Glycolic Acid 10%; Papaya Enzyme; Niacinamide",
+    "tags": "rinse-off|brightening|AHA|dull-skin",
+    "price_usd": 52.0,
+    "margin_percent": 45.0
+  },
+  {
+    "product_id": "BW001",
+    "name": "Revive Citrus Shower Gel",
+    "category": "body wash",
+    "description": "Sulphate-free body wash with energizing citrus aroma and silky lather.",
+    "top_ingredients": "Vitamin C; Orange Essential Oil; Aloe Vera",
+    "tags": "body-wash|energizing|sulfate-free|aromatic",
+    "price_usd": 25.0,
+    "margin_percent": 34.0
+  },
+  {
+    "product_id": "BW002",
+    "name": "Soothe & Silk Sensitive Wash",
+    "category": "body wash",
+    "description": "Ultra-gentle wash that calms itchy, reactive skin while cleansing.",
+    "top_ingredients": "Colloidal Oat; Allantoin; Chamomile Extract",
+    "tags": "body-wash|sensitive|fragrance-free|soothing",
+    "price_usd": 28.0,
+    "margin_percent": 35.0
+  },
+  {
+    "product_id": "BW003",
+    "name": "Polish Glow Exfoliating Body Wash",
+    "category": "body wash",
+    "description": "Dual-action body wash with micro-pumice for smooth, luminous skin.",
+    "top_ingredients": "Lactic Acid; Bamboo Powder; Rice Bran Oil",
+    "tags": "body-wash|exfoliating|brightening|AHA",
+    "price_usd": 30.0,
+    "margin_percent": 36.0
+  },
+  {
+    "product_id": "HC001",
+    "name": "SleekSilk Anti-Frizz Shampoo",
+    "category": "shampoo",
+    "description": "Sulfate-free cleanser that smooths flyaways and adds glassy shine.",
+    "top_ingredients": "Argan Oil; Hydrolyzed Keratin; Panthenol",
+    "tags": "shampoo|frizz-control|sulfate-free|shine",
+    "price_usd": 24.0,
+    "margin_percent": 38.0
+  },
+  {
+    "product_id": "HC002",
+    "name": "ScalpBalance Anti-Dandruff Shampoo",
+    "category": "shampoo",
+    "description": "Gentle yet effective shampoo that clears flakes without over-drying.",
+    "top_ingredients": "Pyrithione Zinc 1%; Tea Tree Oil; Salicylic Acid",
+    "tags": "shampoo|dandruff|oily-scalp|soothing",
+    "price_usd": 26.0,
+    "margin_percent": 40.0
+  },
+  {
+    "product_id": "HC003",
+    "name": "ColorLock Vibrant-Hue Shampoo",
+    "category": "shampoo",
+    "description": "Protects color vibrancy and shields from UV fade for dyed hair.",
+    "top_ingredients": "Quinoa Protein; UV Filter; Hibiscus Extract",
+    "tags": "shampoo|color-protection|sulfate-free",
+    "price_usd": 28.0,
+    "margin_percent": 41.0
+  },
+  {
+    "product_id": "HC004",
+    "name": "SleekSilk Anti-Frizz Conditioner",
+    "category": "conditioner",
+    "description": "Rich conditioner that seals cuticles and tames frizz for silkier strands.",
+    "top_ingredients": "Argan Oil; Shea Butter; Cetearyl Alcohol",
+    "tags": "conditioner|frizz-control|shine",
+    "price_usd": 26.0,
+    "margin_percent": 38.0
+  },
+  {
+    "product_id": "HC005",
+    "name": "FeatherLight Oil-Balance Conditioner",
+    "category": "conditioner",
+    "description": "Weightless conditioner that hydrates ends without weighing down oily scalps.",
+    "top_ingredients": "Rice Water; Niacinamide; Aloe Vera",
+    "tags": "conditioner|oily-scalp|lightweight|silicone-free",
+    "price_usd": 25.0,
+    "margin_percent": 37.0
+  },
+  {
+    "product_id": "HC006",
+    "name": "ColorLock Vibrant-Hue Conditioner",
+    "category": "conditioner",
+    "description": "Color-safe conditioner that boosts vibrancy and prevents hue stripping.",
+    "top_ingredients": "Quinoa Protein; Sunflower Seed Oil; Vitamin E",
+    "tags": "conditioner|color-protection|UV-shield",
+    "price_usd": 30.0,
+    "margin_percent": 41.0
+  },
+  {
+    "product_id": "HC007",
+    "name": "RepairRitual Deep Mask (Silicone-Free)",
+    "category": "hair mask",
+    "description": "Weekly mask that mends split ends and strengthens over-processed hair—no silicones or parabens.",
+    "top_ingredients": "Hydrolyzed Silk Protein; Ceramides; Avocado Oil",
+    "tags": "hair-mask|repair|no-silicones|no-parabens",
+    "price_usd": 32.0,
+    "margin_percent": 45.0
+  }
+]

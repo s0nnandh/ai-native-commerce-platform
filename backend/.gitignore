@@ -28,7 +28,7 @@ venv/
 ENV/
 
 # ChromaDB
-chroma_db/
+# chroma_db/
 
 # IDE
 .idea/
