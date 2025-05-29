@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # Frontend Service
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai-commerce-frontend
+    ports:
+      - "80:80"
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
