@@ -51,6 +51,7 @@ Use these examples for clarity:
 - Use context to decide follow-up necessity; avoid asking follow-ups if the user appears casual or non-committal.
 - Your follow-up topics, if needed, must be limited to gathering missing constraints should be one of the above constraints only
 - Do not follow-up with the same category of topic which is already gathered from the user request
+- If classification is "RECOMMEND_VAGUE", you should ask a followup question to the user, set `ask_followup=True`
 
 ---
 
@@ -173,7 +174,8 @@ Only use the specified enums, fields, and types. Omit any fields not clearly sta
         # if len(user_messages) > 1:
         #     conversation_history = "Conversation history:\n" + "\n".join([f"- {msg}" for msg in user_messages[:-1]]) + "\n\n"
         
-        return f"""Conversation Histiry:\n\n{messages_summary}\nClassify this message: "{current_message}"
+        return f"""Conversation History:\n\n{messages_summary}\n
+        Classify the user intent from the above conversation history"
 
 Consider the entire conversation history when extracting constraints."""
 

@@ -138,6 +138,9 @@ class VectorStoreManager:
                 if key in ['top_ingredients', 'tags']:
                     # Support is pending https://github.com/chroma-core/chroma/issues/3415
                     continue
+                if key in ['price_usd']:
+                    # Handled in manual filter
+                    continue
                 if value is None:
                     # Skip null values
                     continue

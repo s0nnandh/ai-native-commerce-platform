@@ -31,9 +31,7 @@ class ProductLookupManager:
     def _load_products(self):
         """Load products from JSON file."""
         try:
-            logger.info("load_products", product_file=self.products_file)
-            if not os.path.exists(self.products_file):
-                self._create_sample_data()
+            # logger.info("load_products", product_file=self.products_file)
             
             with open(self.products_file, 'r') as f:
                 products_data = json.load(f)
@@ -54,96 +52,30 @@ class ProductLookupManager:
     def filter_products_by_constraints(
         self, 
         products: List[Product], 
-        constraints: Dict[str, Any]
+        keywords: List[str],
+        concerns: List[str],
+        top_ingredients: List[str],
+        avoid_ingredients: List[str]
     ) -> List[Product]:
         """Filter products based on user constraints."""
-        if not constraints:
+        filtered_products = []
+        try:
+            for product in products:
+                # Check if the product matches all the constraints
+                if (any(keyword.lower() in product.tags_list for keyword in keywords) and
+                    any(concern.lower() in product.tags_list for concern in concerns) and
+                    any(ingredient.lower() in product.ingredients_list for ingredient in top_ingredients) and
+                    not any(ingredient.lower() in product.ingredients_list for ingredient in avoid_ingredients)):
+                    filtered_products.append(product)
+        except Exception as e:
+            logger.error("filter_products_error", error=str(e))
             return products
-        
-        filtered = products
-        
-        # Filter by category
-        if constraints.get('category'):
-            category = constraints['category'].lower()
-            filtered = [p for p in filtered if p.category.lower() == category]
-        
-        # Filter by price cap
-        if constraints.get('price_cap'):
-            price_cap = float(constraints['price_cap'])
-            filtered = [p for p in filtered if p.price_usd <= price_cap]
-        
-        # Filter by avoid ingredients
-        if constraints.get('avoid_ingredients'):
-            avoid_ingredients = [ing.lower() for ing in constraints['avoid_ingredients']]
-            filtered = [p for p in filtered 
-                       if not any(avoid_ing in ing.lower() 
-                                for ing in p.ingredients_list 
-                                for avoid_ing in avoid_ingredients)]
-        
-        return filtered
+
+        return filtered_products if len(filtered_products) > 0 else products
     
     def get_all_products(self) -> List[Product]:
         """Get all products."""
         return self._products
-    
-    def _create_sample_data(self):
-        """Create sample products.json if missing."""
-        sample_products = [
-            {
-                "product_id": "SKU001",
-                "name": "Gentle Daily Cleanser",
-                "category": "cleanser",
-                "description": "A mild, soap-free cleanser suitable for all skin types.",
-                "top_ingredients": "Water; Glycerin; Cocamidopropyl Betaine; Sodium Lauroyl Sarcosinate",
-                "tags": "gentle|daily|sensitive-skin",
-                "price_usd": 24.99,
-                "margin_percent": 45.2
-            },
-            {
-                "product_id": "SKU002", 
-                "name": "Niacinamide 10% Serum",
-                "category": "serum",
-                "description": "High-strength niacinamide serum to reduce blemishes and regulate oil production.",
-                "top_ingredients": "Water; Niacinamide; Pentylene Glycol; Zinc PCA",
-                "tags": "niacinamide|oil-control|acne",
-                "price_usd": 18.50,
-                "margin_percent": 52.1
-            },
-            {
-                "product_id": "SKU003",
-                "name": "Hyaluronic Acid Moisturizer", 
-                "category": "moisturizer",
-                "description": "Lightweight moisturizer with multiple types of hyaluronic acid for intense hydration.",
-                "top_ingredients": "Water; Sodium Hyaluronate; Glycerin; Squalane",
-                "tags": "hydrating|lightweight|hyaluronic-acid",
-                "price_usd": 32.00,
-                "margin_percent": 38.7
-            },
-            {
-                "product_id": "SKU004",
-                "name": "Vitamin C Brightening Serum",
-                "category": "serum", 
-                "description": "Stabilized vitamin C serum with 15% L-Ascorbic Acid.",
-                "top_ingredients": "Water; L-Ascorbic Acid; Propylene Glycol; Alpha Tocopherol",
-                "tags": "vitamin-c|brightening|antioxidant",
-                "price_usd": 42.75,
-                "margin_percent": 41.3
-            },
-            {
-                "product_id": "SKU005",
-                "name": "Retinol 0.5% Night Treatment",
-                "category": "treatment",
-                "description": "Gentle retinol formulation for anti-aging and skin renewal.",
-                "top_ingredients": "Squalane; Retinol; Caprylic/Capric Triglyceride; Tocopherol",
-                "tags": "retinol|anti-aging|night",
-                "price_usd": 38.99,
-                "margin_percent": 48.6
-            }
-        ]
-        
-        os.makedirs(os.path.dirname(self.products_file), exist_ok=True)
-        with open(self.products_file, 'w') as f:
-            json.dump(sample_products, f, indent=2)
 
 
 # Global instance

@@ -23,8 +23,8 @@ class SearchQuery(BaseModel):
     metadata_filters: Optional[Dict[str, Union[str, List[str]]]] = Field(
         description="Metadata filters to refine the search results",
         examples=[
-            {"category": "serum", "skin_concern": "acne", "price_cap": 40.0},
-            {"avoid_ingredients": ["fragrance", "alcohol"], "target_sku": "Vitamin C Brightening Serum"}
+            {"category": "serum", "skin_concern": "acne", "price_cap": "40.0"},
+            {"avoid_ingredients": ["fragrance", "alcohol"], "product_name": "Vitamin C Brightening Serum"}
         ]
     )
 
@@ -59,7 +59,7 @@ class ClassifyAndExtractUserIntent(BaseModel):
                     examples=["RECOMMEND_SPECIFIC", "RECOMMEND_VAGUE", "INFO_PRODUCT"]
                 )
     ask_followup: FollowupRequired = Field(
-        default="no",
+        default="yes",
         description="Whether a follow-up question is needed: 'yes' or 'no'",
         examples=["yes", "no"]
     ),
@@ -70,9 +70,9 @@ class ClassifyAndExtractUserIntent(BaseModel):
     )
     category: Optional[List[Literal["serum", "toner", 
                         "sunscreen", "moisturizer", 
-                        "face_mask", "body_wash",
+                        "face-mask", "body-wash",
                             "shampoo", "conditioner", 
-                            "hair_mask"]]] = Field(
+                            "hair-mask"]]] = Field(
                                 default=[],
                                 description="Product categories mentioned or implied in the user request. Multiple categories can be specified.",
                                 examples=[["serum"], ["moisturizer", "sunscreen"], ["toner"]]
@@ -133,7 +133,7 @@ class ClassifyAndExtractUserIntent(BaseModel):
     def validate_category(cls, v):
         """Validate category enum values."""
         if v is not None:
-            allowed_categories = {"serum", "toner", "sunscreen", "moisturizer", "face_mask", "body_wash", "shampoo", "conditioner", "hair_mask"}
+            allowed_categories = {"serum", "toner", "sunscreen", "moisturizer", "face-mask", "body-wash", "shampoo", "conditioner", "hair-mask"}
             for category in v:
                 if category not in allowed_categories:
                     raise ValueError(f"Category must be one of {allowed_categories}, got {category}")
@@ -165,127 +165,3 @@ class ChatState(BaseModel):
     retrieved_docs: List[Document] = Field(default_factory=list)
     products: List[Product] = Field(default_factory=list)
     citations: List[Citation] = Field(default_factory=list)
-    
-    # def merge_constraints(self, new_constraints: Dict[str, Any]) -> None:
-    #     """
-    #     Merge new constraints into existing ones, handling list merging appropriately.
-    #     """
-    #     for key, value in new_constraints.items():
-    #         if key in ['avoid_ingredients', 'desired_ingredients']:
-    #             # Merge lists, avoiding duplicates
-    #             existing = self.constraints.get(key, [])
-    #             if isinstance(existing, list) and isinstance(value, list):
-    #                 merged = list(set(existing + value))
-    #                 self.constraints[key] = merged
-    #             else:
-    #                 self.constraints[key] = value if isinstance(value, list) else [value]
-    #         else:
-    #             # Direct assignment for non-list constraints
-    #             self.constraints[key] = value
-    
-    def get_constraint_priority_order(self) -> List[str]:
-        """
-        Return constraint keys in priority order for followup questions.
-        Safety-first approach with critical constraints prioritized.
-        """
-        return [
-            'category',
-            'concerns',
-            'keywords',          
-            'name',
-            'product_id',
-            'avoid_ingredients',
-            'top_ingredients', 
-            'price',          
-            'other'             
-        ]
-    
-    def get_constraint_groups(self) -> Dict[str, List[str]]:
-        """
-        Group constraints by criticality for smarter followup logic.
-        """
-        return {
-            'SPECIFIC_CONSTRAINTS': ['name', 'product_id'],
-            'CRITICAL_CONSTRAINTS': ['category', 'concerns'],
-            'IMPORTANT_CONSTRAINTS': ['keywords', 'avoid_ingredients', 'top_ingredients'],
-            'NICE_TO_HAVE': ['price', 'other']
-        }
-    
-    def should_ask_followup(self) -> tuple[bool, List[str]]:
-        """
-        Determine if we should ask a followup question based on:
-        1. Turn count (max 3 turns total)
-        2. Constraint criticality
-        3. Information completeness
-        
-        Returns:
-            Tuple of (should_ask_followup, list_of_followup_keys)
-        """
-        # Never ask after 3 turns
-        if self.turn_count >= 3:
-            return False, []
-
-        # If specific constraints are added, do not follow up 
-        if self.extracted_info and self.extracted_info.intent == "RECOMMEND_SPECIFIC":
-            return False, []
-        
-        # if any of the critical constraints are missing, follow up 
-        critical_constraints = self.get_constraint_groups()['CRITICAL_CONSTRAINTS']
-        missing_critical = [key for key in critical_constraints if key in self.missing_keys]
-        if missing_critical:
-            return True, missing_critical
-        
-        # if it is the first turn and any of the important constraints are missing, follow up
-        if self.turn_count == 0:
-            important_constraints = self.get_constraint_groups()['IMPORTANT_CONSTRAINTS']
-            missing_important = [key for key in important_constraints if key in self.missing_keys]
-            if missing_important:
-                return True, missing_important
-        
-        return False, []
-    
-    def reset_for_new_turn(self) -> None:
-        """Reset state for a new conversation turn while preserving session context."""
-        # Save messages to history lists before clearing
-        if self.user_message:
-            self.user_messages_list.append(self.user_message)
-        if self.ai_message:
-            self.ai_messages_list.append(self.ai_message)
-            
-        # Reset current message state
-        self.user_message = None
-        self.ai_message = None
-        
-        # Reset other state for new turn
-        self.ask_followup = "no"
-        self.followup_keys = []
-        self.retrieved_docs = []
-        self.products = []
-        self.citations = []
-
-
-class IntentClassificationResult(BaseModel):
-    """Result from business-focused intent classification LLM call."""
-    intent: Literal["RECOMMEND_SPECIFIC", "RECOMMEND_VAGUE", "FOLLOWUP_ANSWER", "INFORMATIONAL", "OVERVIEW", "OTHER"]
-    ask_followup: bool
-    followup_question: Optional[str] = None
-    detected_constraints: Dict[str, Any] = Field(default_factory=dict)
-    
-    @field_validator('intent')
-    @classmethod
-    def validate_intent_enum(cls, v):
-        """Validate business intent enum values."""
-        allowed_intents = {"RECOMMEND_SPECIFIC", "RECOMMEND_VAGUE", "FOLLOWUP_ANSWER", "INFORMATIONAL", "OVERVIEW", "OTHER"}
-        if v not in allowed_intents:
-            raise ValueError(f"Intent must be one of {allowed_intents}, got {v}")
-        return v
-
-
-class AssistResponse(BaseModel):
-    """Response format for the /api/assist endpoint."""
-    text: str
-    ask_followup: bool
-    followup_keys: List[str] = Field(default_factory=list)
-    products: List[Dict[str, Any]] = Field(default_factory=list)
-    citations: List[Dict[str, Any]] = Field(default_factory=list)
-    latency_ms: int

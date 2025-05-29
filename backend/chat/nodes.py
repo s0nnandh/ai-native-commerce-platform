@@ -2,18 +2,15 @@
 Enhanced LangGraph node implementations using class-based architecture.
 Provides better dependency management, configuration, and testability.
 """
-import json
 import time
 from typing import Dict, Any, Optional, List, Tuple
 import structlog
 from langchain.chat_models import init_chat_model
 from langchain.schema import Document
-from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
 
 from .state import ChatState, Product, Citation, ClassifyAndExtractUserIntent, FollowupUser, SearchQuery
 from utils.constants import (
-    LLMConfig, ConversationConfig, RetrievalConfig,ErrorMessages, CONSTRAINT_NATURAL_LANGUAGE_MAP
+    LLMConfig, RetrievalConfig,ErrorMessages
 )
 from utils.tools import ToolManager
 from manager.vector_lookup import VectorStoreManager
@@ -90,9 +87,6 @@ class ConversationOrchestrator:
         Classify user intent using GPT-3.5 with tool-based classification.
         Enhanced with proper tool call parsing and validation.
         """
-        start_time = time.time()
-        logger.info("classify_intent_start", session_id=state.session_id)
-        
         try:
             # Prepare the classification prompt
             system_prompt = self.intent_prompts.get_system_prompt()
@@ -113,30 +107,18 @@ class ConversationOrchestrator:
             classification_result = self.classifier_gpt.invoke(messages)
 
             # Debug classification result
-            logger.debug("classification_result_debug",
-                        session_id=state.session_id,
-                        classification_result=classification_result)
+            # logger.debug("classification_result_debug",
+            #             session_id=state.session_id,
+            #             classification_result=classification_result)
+                        
+            should_ask = "no" if state.turn_count == 3 else classification_result.ask_followup
             
-            if classification_result:
-                # Log successful classification
-                latency = int((time.time() - start_time) * 1000)
-                logger.info("classify_intent_success",
-                           session_id=state.session_id,
-                           latency_ms=latency)
-                
-                should_ask = "no" if state.turn_count == 3 else classification_result.ask_followup
-                
-                return {
-                    "extracted_info": classification_result,
-                    "intent": classification_result.intent,
-                    "ask_followup": should_ask,
-                    "followup_topics": classification_result.followup_topics
-                }
-            else:
-                # Handle classification failure
-                logger.warning("classification_fallback_applied", session_id=state.session_id)
-                return self._get_fallback_intent_classification()
-                
+            return {
+                "extracted_info": classification_result,
+                "intent": classification_result.intent,
+                "ask_followup": should_ask,
+                "followup_topics": classification_result.followup_topics
+            }   
         except Exception as e:
             logger.error("classify_intent_error", 
                         session_id=state.session_id, 
@@ -148,38 +130,45 @@ class ConversationOrchestrator:
         Generate contextual follow-up questions using Gemini.
         Enhanced with better prompt engineering.
         """
-        # Generate contextual followup question with conversation history
-        followup_system_prompt = self.followup_prompts.get_system_prompt()
-        followup_user_prompt = self.followup_prompts.get_followup_prompt(
-            followup_topics=state.followup_topics,
-            user_messages=state.user_messages,
-            assistant_messages=state.ai_messages
-        )
+        try:
+            followup_system_prompt = self.followup_prompts.get_system_prompt()
+            examples = self.followup_prompts.get_examples()
+            followup_user_prompt = self.followup_prompts.get_followup_prompt(
+                followup_topics=state.followup_topics,
+                user_messages=state.user_messages,
+                assistant_messages=state.ai_messages
+            )
 
-        # Create messages for tool-bound LLM
-        messages = [
-            {"role": "system", "content": followup_system_prompt},
-            {"role": "user", "content": followup_user_prompt}
-        ]
-        
-        followup = self.followup_gpt.invoke(messages)
-
-        # print followup
-        logger.debug("followup_generated",
-                    session_id=state.session_id,
-                    followup=followup)
-
-        updated_ai_messages = state.ai_messages
-
-        if followup:
-            updated_ai_messages.append(followup.followup_question)
+            # Create messages for tool-bound LLM
+            messages = [
+                {"role": "system", "content": followup_system_prompt},
+                *examples,
+                {"role": "user", "content": followup_user_prompt}
+            ]
             
-        else:
-            updated_ai_messages.append("What are your major concerns?")
-        
-        return {
-            "ai_messages": updated_ai_messages
-        }
+            followup = self.followup_gpt.invoke(messages)
+
+            # print followup
+            # logger.debug("followup_generated",
+            #             session_id=state.session_id,
+            #             followup=followup)
+
+            updated_ai_messages = state.ai_messages
+
+            if followup:
+                updated_ai_messages.append(followup.followup_question)
+                
+            else:
+                updated_ai_messages.append("What are your major concerns?")
+            
+            return {
+                "ai_messages": updated_ai_messages
+            }
+        except Exception as e:
+            logger.error("generate_followup_error",
+                        session_id=state.session_id,
+                        error=str(e))
+            return {"ai_messages": ErrorMessages.NO_PRODUCTS_FOUND}
             
     
     def retrieval_node(self, state: ChatState) -> Dict[str, Any]:
@@ -190,7 +179,6 @@ class ConversationOrchestrator:
         logger.info("retrieval_start", session_id=state.session_id)
         
         try:
-            
             system_prompt = self.retrieve_prompt.get_system_prompt()
             example_messages = self.retrieve_prompt.get_messages_examples()
             user_prompt = self.retrieve_prompt.get_user_prompt(
@@ -205,9 +193,9 @@ class ConversationOrchestrator:
             search_query = self.retrieve_gemini.invoke(messages)
 
             # print search query
-            logger.debug("search_query_debug",
-                        session_id=state.session_id,
-                        search_query=search_query)
+            # logger.debug("search_query_debug",
+            #             session_id=state.session_id,
+            #             search_query=search_query)
             
             query = search_query.query
             metadata_filters = search_query.metadata_filters
@@ -246,10 +234,14 @@ class ConversationOrchestrator:
             # Extract and validate products from documents
             product_candidates = self._extract_products_from_docs(state.retrieved_docs)
             
+            filtered_products = self._apply_manual_filters(
+                products=product_candidates,
+                extracted_info=state.extracted_info
+            )
             
             # Rank by margin with similarity tie-breaking
             ranked_products = self._rank_products_by_margin(
-                products=product_candidates,
+                products=filtered_products,
                 retrieved_docs=state.retrieved_docs
             )
             
@@ -268,7 +260,6 @@ class ConversationOrchestrator:
         """
         Enhanced response generation with mode-specific optimization.
         """
-        
         try:
             if state.intent in ["INFO_GENERAL", "INFO_PRODUCT", "OTHER"]:
                 ai_message, citations, products = self._generate_informational_response_data(state)
@@ -292,136 +283,6 @@ class ConversationOrchestrator:
                 "ai_messages": [ErrorMessages.GENERATION_ERROR],
                 "citations": []
             }
-    
-    # Private helper methods
-
-    # def _parse_tool_calls(self, response) -> Optional[Dict[str, Any]]:
-    #     # log response
-    #     logger.info("response_debug", response=response)
-
-    #     if not hasattr(response, 'tool_calls') or not response.tool_calls:
-    #         logger.warning("no_tool_calls_found", 
-    #                 has_attr=hasattr(response, 'tool_calls'),
-    #                 is_empty=not response.tool_calls if hasattr(response, 'tool_calls') else True)
-    #         return None
-            
-    #         # Get the first tool call
-    #     tool_call = response.tool_calls[0]
-
-    #     return tool_call.get('args', {})
-
-    
-    # def _parse_intent_tool_calls(self, response) -> Optional[Dict[str, Any]]:
-    #     """
-    #     Parse and validate tool calls from LLM response.
-    #     Simplified for direct Dict return from tool.
-    #     """
-    #     try:
-    #         # Check if response has tool_calls attribute and it's not empty
-    #         if not hasattr(response, 'tool_calls') or not response.tool_calls:
-    #             logger.warning("no_tool_calls_found", 
-    #                           has_attr=hasattr(response, 'tool_calls'),
-    #                           is_empty=not response.tool_calls if hasattr(response, 'tool_calls') else True)
-    #             return None
-            
-    #         # Get the first tool call
-    #         tool_call = response.tool_calls[0]
-            
-    #         # Validate it's the classify_user_intent tool
-    #         if tool_call.get('name') != 'classify_user_intent':
-    #             logger.warning("unexpected_tool_call", tool_name=tool_call.get('name'))
-    #             return None
-            
-    #         # Extract arguments from the tool call - these are the direct function parameters
-    #         args = tool_call.get('args', {})
-            
-    #         if not args:
-    #             logger.warning("empty_tool_args")
-    #             return None
-            
-    #         # print args
-    #         logger.debug("tool_args", args=args)
-
-    #         # Only add keys that exist in args
-    #         detected_constraints = {}
-    #         constraint_keys = ["category", "skin_concern", "avoid_ingredients", 
-    #                           "desired_ingredients", "price_cap", "target_sku", "finish"]
-            
-    #         for key in constraint_keys:
-    #             if key in args and args[key] is not None:
-    #                 detected_constraints[key] = args[key]
-
-    #         # The tool now returns a Dict directly, so we can use the args as-is
-    #         # The tool handles all the business logic internally
-    #         result = {
-    #             "intent": args.get("intent"),
-    #             "ask_followup": args.get("ask_followup", False),
-    #             "constraints": detected_constraints,
-    #             "followup_question": args.get("followup_question"),
-    #             "confidence_score": args.get("confidence_score")
-    #         }
-            
-    #         return result
-            
-    #     except Exception as e:
-    #         logger.error("tool_call_parse_error", 
-    #                     error=str(e),
-    #                     error_type=type(e).__name__)
-    #         return None
-
-    # def _determine_followup_strategy_static(
-    #     self, 
-    #     turn_count: int, 
-    #     constraints: Dict[str, Any], 
-    #     missing_keys: List[str]
-    # ) -> Tuple[bool, List[str]]:
-    #     """Enhanced followup strategy with smarter decision making (static version for update pattern)."""
-    #     # Never ask after max turns
-    #     if turn_count >= ConversationConfig.MAX_TURNS:
-    #         return False, []
-        
-    #     followup_keys = []
-        
-    #     # Check critical constraints first
-    #     for constraint in ConversationConfig.CRITICAL_CONSTRAINTS:
-    #         if constraint in missing_keys:
-    #             followup_keys.append(constraint)
-        
-    #     # If we have critical constraints to ask about, return them
-    #     if followup_keys:
-    #         return True, followup_keys
-        
-    #     # Check important constraints on early turns
-    #     if turn_count < ConversationConfig.MAX_FOLLOWUP_TURNS:
-    #         for constraint in ConversationConfig.IMPORTANT_CONSTRAINTS:
-    #             if constraint in missing_keys:
-    #                 followup_keys.append(constraint)
-        
-    #     # If we have important constraints to ask about, return them
-    #     if followup_keys:
-    #         return True, followup_keys
-        
-    #     # Check if we have minimum info for good recommendations
-    #     if (turn_count == 0 and 
-    #         len(constraints) < ConversationConfig.MIN_CONSTRAINTS_FOR_RECOMMENDATION):
-    #         for constraint in ConversationConfig.NICE_TO_HAVE_CONSTRAINTS:
-    #             if constraint in missing_keys:
-    #                 followup_keys.append(constraint)
-        
-    #     return len(followup_keys) > 0, followup_keys
-    
-    # def _build_retrieval_filter(self, constraints: Dict[str, Any]) -> Dict[str, Any]:
-    #     """Build optimized filter dictionary for vector search."""
-    #     filter_dict = {}
-        
-    #     # Add category filter if present
-    #     if 'category' in constraints and constraints['category']:
-    #         filter_dict['category'] = constraints['category']
-        
-    #     # Add other relevant filters based on metadata structure
-    #     # This would depend on how your vector store is set up
-        
-    #     return filter_dict
     
     def _get_fallback_intent_classification(self) -> Dict[str, Any]:
         """Fallback intent classification in case of error."""
@@ -452,9 +313,21 @@ class ConversationOrchestrator:
                 product = self.product_lookup_manager.get_product_by_id(product_id)
                 if product:
                     products.append(product)
-        logger.info("extracted_products", products=products)
+        # logger.info("extracted_products", products=products)
         return products
     
+    def _apply_manual_filters(self, 
+                              products: List[Product], 
+                              extracted_info: ClassifyAndExtractUserIntent):
+        return self.product_lookup_manager.filter_products_by_constraints(
+            products=products,
+            keywords=extracted_info.keywords,
+            concerns=extracted_info.concerns,
+            top_ingredients=extracted_info.top_ingredients,
+            avoid_ingredients=extracted_info.avoid_ingredients,
+        )
+
+
     def _rank_products_by_margin(self, products: List[Product], retrieved_docs: List[Document]) -> List[Product]:
         """Rank products by margin with similarity score tie-breaking."""
         # Create mapping of product_id to similarity score
@@ -498,7 +371,7 @@ class ConversationOrchestrator:
             ]
 
         # log messages
-        logger.info("test_messages", messages=messages) 
+        # logger.info("test_messages", messages=messages) 
         
         response = self.gemini_flash.invoke(messages)
         
@@ -537,9 +410,13 @@ class ConversationOrchestrator:
             if len(snippets) >= RetrievalConfig.MAX_CITATIONS:
                 break
         
-        ranked_products = self._rank_products_by_margin(products, state.retrieved_docs)
+        filtered_products = self._apply_manual_filters(
+            products=products,
+            extracted_info=state.extracted_info
+        )
+        ranked_products = self._rank_products_by_margin(filtered_products, state.retrieved_docs)
         
-        logger.info("context_snippets", context_snippets=snippets)
+        # logger.info("context_snippets", context_snippets=snippets)
 
         # Generate informational response with conversation history
         system_prompt = self.response_prompts.get_informational_system_prompt()
@@ -557,11 +434,11 @@ class ConversationOrchestrator:
             ]
         
         # log messages
-        logger.info("test_messages", messages=messages)
+        # logger.info("test_messages", messages=messages)
         
         response = self.gemini_flash.invoke(messages)
 
-        logger.info("generate_response", response=response)
+        # logger.info("generate_response", response=response)
         
         # Create citations
         citations = [

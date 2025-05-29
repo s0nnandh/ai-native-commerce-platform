@@ -30,7 +30,7 @@ The vector database contains 4 document types:
 #### 1. **Products** (`doc_type: "product"`)
 Used for retrieving product recommendations and detailed information.
 Includes: name, category, ingredients, tags, price, etc.
-Important: Only possible values for category filter are - `serum`, `toner`, `sunscreen`, `moisturizer`, `face_mask`, `body_wash`, `shampoo`, `conditioner`, `hair_mask`
+Important: Only possible values for category filter are - `serum`, `toner`, `sunscreen`, `moisturizer`, `face-mask`, `body-wash`, `shampoo`, `conditioner`, `hair-mask`
 
 #### 2. **Reviews** (`doc_type: "review"`)
 Customer feedback on products. Contains ratings, skin_type, sentiment, age group, etc.

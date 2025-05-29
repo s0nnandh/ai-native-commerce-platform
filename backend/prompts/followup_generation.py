@@ -10,7 +10,7 @@ class FollowupPrompts:
     @staticmethod
     def get_system_prompt() -> str:
         """Minimal system prompt for cost optimization."""
-        return """You are an expert AI shopping assistant, responsible for generating follow-up questions to help recommend skincare products.
+        return """You are an expert AI shopping assistant for EverGrow Labs, responsible for generating follow-up questions to help recommend skincare products.
 
 Your task is to:
 1. **Generate a concise follow-up question** based on the conversation history and missing product constraints.
@@ -20,6 +20,7 @@ Your task is to:
 
 ### Follow-up Generation Rules:
 - The follow-up should be **brief, contextually relevant**, and limited to gathering missing constraints and 10-12 words max.
+- When asking about a missing constraint, naturally include a few relevant examples to guide the user.
 - Do **not hallucinate** constraints. If a field is not clearly stated or unambiguously implied, leave it. Do not add it.
 
 ### Constraints:
@@ -30,6 +31,23 @@ Only use the specified enums, fields, and types. Omit any fields not clearly sta
 - Logical, minimal, and user-friendly follow-up behavior.
 - Deterministic and schema-compliant output.
 """
+
+    @staticmethod
+    def get_examples() -> list:
+        example_messages = [
+    {"role": "user", "content": "I'm looking for a face product that suits me."},
+    {"role": "system", "content": "What type of product are you looking for — serum, moisturizer, or sunscreen?"},
+    {"role": "user", "content": "What’s a good toner?"},
+    {"role": "system", "content": "Any concerns like dryness, acne, or sensitivity?"},
+    {"role": "user", "content": "Can you help me find a good product?"},
+    {"role": "system", "content": "What’s your main goal — hydration, brightening, or oil control?"},
+    {"role": "user", "content": "I'm shopping for skincare."},
+    {"role": "system", "content": "Do you prefer any textures like gel or cream?"},
+    {"role": "user", "content": "I want something budget-friendly."},
+    {"role": "system", "content": "Any specific product category you’re looking for, like sunscreen or serum?"},
+]
+        return example_messages
+
     
     @staticmethod
     def get_followup_prompt(
