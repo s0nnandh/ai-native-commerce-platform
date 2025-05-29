@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -19,6 +20,11 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' }
+        }
       },
     },
   },

@@ -3,11 +3,15 @@ import { create } from 'zustand';
 interface UIState {
   isMobileMenuOpen: boolean;
   isDarkMode: boolean;
+  isScrolled: boolean;
+  showStickyHeader: boolean;
   
   // Actions
   toggleMobileMenu: () => void;
   toggleDarkMode: () => void;
   setDarkMode: (isDark: boolean) => void;
+  setScrollState: (scrolled: boolean) => void;
+  setShowStickyHeader: (show: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => {
@@ -25,6 +29,8 @@ export const useUIStore = create<UIState>((set) => {
   return {
     isMobileMenuOpen: false,
     isDarkMode: prefersDarkMode,
+    isScrolled: false,
+    showStickyHeader: false,
     
     toggleMobileMenu: () => set((state) => ({ isMobileMenuOpen: !state.isMobileMenuOpen })),
     
@@ -54,5 +60,9 @@ export const useUIStore = create<UIState>((set) => {
       
       return { isDarkMode: isDark };
     }),
+    
+    setScrollState: (scrolled) => set(() => ({ isScrolled: scrolled })),
+    
+    setShowStickyHeader: (show) => set(() => ({ showStickyHeader: show })),
   };
 });

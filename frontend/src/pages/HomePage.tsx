@@ -5,9 +5,11 @@ import ResponseArea from '../components/search/ResponseArea';
 import CitationsSection from '../components/search/CitationsSection';
 import ProductGrid from '../components/product/ProductGrid';
 import { useProductStore } from '../store/productStore';
+import { useUIStore } from '../store/uiStore';
 
 const HomePage = () => {
   const { loadAllProducts } = useProductStore();
+  const { showStickyHeader } = useUIStore();
   
   // Load all products when the page loads
   useEffect(() => {
@@ -127,7 +129,8 @@ const HomePage = () => {
               Discover products tailored to your unique needs through our conversational search
             </p>
             <SearchBar />
-            <ResponseArea />
+            {/* Only show ResponseArea here if not showing in sticky header */}
+            {!showStickyHeader && <ResponseArea />}
             <CitationsSection />
           </div>
         </section>
