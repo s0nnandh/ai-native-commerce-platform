@@ -162,23 +162,32 @@ To run the entire application:
 docker-compose up --build
 ```
 
-To run only the frontend:
+This will start all services:
+- Frontend (accessible at http://localhost:80)
+- Backend API (accessible at http://localhost:5000)
+- ChromaDB (accessible at http://localhost:8000)
+
+For development or debugging individual components:
 
 ```bash
+# Run only the frontend
 docker-compose -f docker-compose.frontend.yml up --build
-```
 
-To run only the backend:
-
-```bash
+# Run only the backend
 docker-compose -f docker-compose.backend.yml up --build
-```
 
-For development with live reload:
-
-```bash
+# Run backend with live reload for development
 docker-compose -f docker-compose.dev.yml up --build
 ```
+
+#### Docker Compose Configuration
+
+The project includes several Docker Compose files for different scenarios:
+
+- `docker-compose.yml`: Main configuration for running the complete application
+- `docker-compose.frontend.yml`: Frontend-only configuration
+- `docker-compose.backend.yml`: Backend-only configuration
+- `docker-compose.dev.yml`: Development configuration with live reload
 
 ### Local Development
 
